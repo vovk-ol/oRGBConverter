@@ -13,24 +13,24 @@ const double ORGBImage::reverseCoersionMatrix[3][3] = { { 1.0000, 0.1140, 0.7436
 //******************************************************************************
 // Convert an sRGB color channel to a linear sRGB color channel.
 //******************************************************************************
-float GammaExpand_sRGB(float nonlinear)
-{
-	return nonlinear;
-	return   (nonlinear <= 0.04045f)
-		? (nonlinear / 12.92f)
-		: (powf((nonlinear + 0.055f) / 1.055f, 2.4f));
-}
+//float GammaExpand_sRGB(float nonlinear)
+//{
+//	return nonlinear;
+//	return   (nonlinear <= 0.04045f)
+//		? (nonlinear / 12.92f)
+//		: (powf((nonlinear + 0.055f) / 1.055f, 2.4f));
+//}
 
 //******************************************************************************
 // Convert a linear sRGB color channel to a sRGB color channel.
 //******************************************************************************
-float GammaCompress_sRGB(float linear)
-{
-	return linear;
-	return   (linear <= 0.0031308f)
-		? (12.92f * linear)
-		: (1.055f * powf(linear, 1.0f / 2.4f) - 0.055f);
-}
+//float GammaCompress_sRGB(float linear)
+//{
+//	return linear;
+//	return   (linear <= 0.0031308f)
+//		? (12.92f * linear)
+//		: (1.055f * powf(linear, 1.0f / 2.4f) - 0.055f);
+//}
 
 ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 
@@ -49,12 +49,10 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 	double scaledOntersity[3];
 
 	this->oRGB = new double**[image.rows];
-	this->oRGBTheta = new double*[image.rows];
 
 	for (int i = 0; i < image.rows; i++)
 	{
 		oRGB[i] = new double*[image.cols];
-		oRGBTheta[i] = new double[image.cols];
 		for (int j = 0; j < image.cols; j++)
 		{
 			oRGB[i][j] = new double[3];
@@ -64,7 +62,7 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 			{
 				//this scaling to range [0,1] isn't neccesary for image processing,
 				//but it's needed to get origin oRGB space
-				scaledOntersity[ch_i] = GammaCompress_sRGB(intensity[2-ch_i] / 255.0);
+				scaledOntersity[ch_i] = intensity[2 - ch_i] / 255.0;
 			}
 
 			//get LCC space
@@ -78,16 +76,17 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 
 			//rotating
 			double theta = atan2(oRGB[i][j][2], oRGB[i][j][1]);
+			double oRGBTheta = 0;
 			if (theta > 0) {
 				if (theta < M_PI / 3.0)
 				{
-					oRGBTheta[i][j] = 1.5*theta;
+					oRGBTheta = 1.5*theta;
 				}
 				else
 				{
 					if (theta <= M_PI)
 					{
-						oRGBTheta[i][j] = M_PI_2 + 0.75*(theta - M_PI / 3.0);
+						oRGBTheta = M_PI_2 + 0.75*(theta - M_PI / 3.0);
 					}
 					else
 					{
@@ -99,13 +98,13 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 			{
 				if (theta > -M_PI / 3.0)
 				{
-					oRGBTheta[i][j] = 1.5*theta;
+					oRGBTheta = 1.5*theta;
 				}
 				else
 				{
 					if (theta >= -M_PI)
 					{
-						oRGBTheta[i][j] = -(M_PI_2 + 0.75*(-theta - M_PI / 3.0));
+						oRGBTheta = -(M_PI_2 + 0.75*(-theta - M_PI / 3.0));
 					}
 					else
 					{
@@ -115,7 +114,7 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 			}
 			//remark: if angle is less then some small parametr e. g. 1e-9, 
 			//we could do no rotating for efficiency
-			double angle = oRGBTheta[i][j] - theta;
+			double angle = oRGBTheta - theta;
 
 			//create rotation matrix
 
@@ -147,22 +146,14 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 		}
 	}
 }
-void ORGBImage::ScaleORGBChannel(double alpha, uint channelIndex) {
-	if (channelIndex > 2)
-		throw ErrorClass(20, "wrong channel index");
-	for (int i = 0; i < image.rows; i++)
-		for (int j = 0; j < image.cols; j++)
-			oRGB[i][j][channelIndex] *= alpha;
+void ORGBImage::SetLumaScaleFactor(double lumaScaleFactor) {
+	this->lumaScaleFactor = lumaScaleFactor;
 }
-
-void ORGBImage::ScaleBlueYellowChannel(double alpha)
-{
-	ScaleORGBChannel(alpha, 1);
+void  ORGBImage::SetBlueYellowScaleFactor(double blueYellowScaleFactor) {
+	this->blueYellowScaleFactor = blueYellowScaleFactor;
 }
-
-void ORGBImage::ScaleGreenRedChannel(double alpha)
-{
-	ScaleORGBChannel(alpha, 2);
+void  ORGBImage::SetGreenRedScaleFactor(double greenRedScaleFactor) {
+	this->greenRedScaleFactor = greenRedScaleFactor;
 }
 
 Mat& ORGBImage::GetOriginImage() { return image; }
@@ -174,24 +165,24 @@ Mat ORGBImage::GetImageFromORGB() {
 	{
 		for (int j = 0; j < image.cols; j++)
 		{
+			double LCbyCgrScaledVector[3];
+			LCbyCgrScaledVector[0] = lumaScaleFactor*oRGB[i][j][0];
+			LCbyCgrScaledVector[1] = blueYellowScaleFactor*oRGB[i][j][1];
+			LCbyCgrScaledVector[2] = greenRedScaleFactor*oRGB[i][j][2];
+
 #pragma region undo rotation
-			double oRGBTheta_2 = atan2(oRGB[i][j][2], oRGB[i][j][1]);
-			/*if (abs(oRGBTheta[i][j] - oRGBTheta_2) > 1e-5)
-			{
-				oRGBTheta[i][j] = oRGBTheta_2;
-			}*/
-			//oRGBTheta[i][j] = oRGBTheta_2;
+			double oRGBTheta_2 = atan2(LCbyCgrScaledVector[2],LCbyCgrScaledVector[1]);
 			double theta;
-			if (oRGBTheta[i][j] > 0) {
-				if (oRGBTheta[i][j] < M_PI_2)
+			if (oRGBTheta_2 > 0) {
+				if (oRGBTheta_2 < M_PI_2)
 				{
-					theta = (2.0*oRGBTheta[i][j]) / 3.0;
+					theta = (2.0*oRGBTheta_2) / 3.0;
 				}
 				else
 				{
-					if (oRGBTheta[i][j] <= M_PI)
+					if (oRGBTheta_2 <= M_PI)
 					{
-						theta = M_PI / 3.0 + (4.0 / 3.0)*(oRGBTheta[i][j] - M_PI_2);
+						theta = M_PI / 3.0 + (4.0 / 3.0)*(oRGBTheta_2 - M_PI_2);
 					}
 					else
 					{
@@ -202,15 +193,15 @@ Mat ORGBImage::GetImageFromORGB() {
 			}
 			else
 			{
-				if (oRGBTheta[i][j] > -M_PI_2)
+				if (oRGBTheta_2 > -M_PI_2)
 				{
-					theta = (2.0*oRGBTheta[i][j]) / 3.0;
+					theta = (2.0*oRGBTheta_2) / 3.0;
 				}
 				else
 				{
-					if (oRGBTheta[i][j] >= -M_PI)
+					if (oRGBTheta_2 >= -M_PI)
 					{
-						theta =-( M_PI / 3.0 + (4.0 / 3.0)*(-oRGBTheta[i][j] - M_PI_2));
+						theta = -(M_PI / 3.0 + (4.0 / 3.0)*(-oRGBTheta_2 - M_PI_2));
 					}
 					else
 					{
@@ -220,22 +211,22 @@ Mat ORGBImage::GetImageFromORGB() {
 				}
 			}
 
-			double angle = (oRGBTheta[i][j] - theta);
+			double angle = (oRGBTheta_2 - theta);
 			double inverseR[2][2] = { { cos(angle), sin(angle) } ,
 									  { -sin(angle),cos(angle) } };
-			double C1C2Vector[2];
+			double CbyCgrTmpVector[2];
 
 			for (int r = 0; r < 2; r++) {
-				C1C2Vector[r] = 0;
+				CbyCgrTmpVector[r] = 0;
 				for (int c = 0; c < 2; c++)
 				{
-					C1C2Vector[r] += inverseR[r][c] * oRGB[i][j][1 + c];
+					CbyCgrTmpVector[r] += inverseR[r][c] * LCbyCgrScaledVector[1 + c];
 				}
 			}
 
 			for (int r = 0; r < 2; r++)
 			{
-				oRGB[i][j][1 + r] = C1C2Vector[r];
+				LCbyCgrScaledVector[1 + r] = CbyCgrTmpVector[r];
 			}
 
 #pragma endregion
@@ -247,9 +238,9 @@ Mat ORGBImage::GetImageFromORGB() {
 				double value = 0;
 				for (int c = 0; c < 3; c++)
 				{
-					value += reverseCoersionMatrix[r][c] * oRGB[i][j][c];
+					value += reverseCoersionMatrix[r][c] * LCbyCgrScaledVector[c];
 				}
-				if (value < 0)
+				/*if (value < 0)
 				{
 					if (value < -0.3)
 						value = value;
@@ -260,8 +251,7 @@ Mat ORGBImage::GetImageFromORGB() {
 					if (value > 1.3)
 						value = value;
 					value = 1;
-				}
-				value = GammaExpand_sRGB(value);
+				}*/
 
 				double scaledIntensity = value *255.0;
 
@@ -269,19 +259,19 @@ Mat ORGBImage::GetImageFromORGB() {
 				//in consequence of rounding in calculations
 				if (scaledIntensity > 255)
 				{
-					double d = 255 - scaledIntensity;
+			/*		double d = 255 - scaledIntensity;
 					if (d > 10)
-						d = -d;
+						d = -d;*/
 					scaledIntensity = 255;
 				}
 				if (scaledIntensity < 0)
 				{
-					if (scaledIntensity < -10)
-						scaledIntensity = -scaledIntensity;
+	/*				if (scaledIntensity < -10)
+						scaledIntensity = -scaledIntensity;*/
 					scaledIntensity = 0;
 				}
 
-				intensity[2-r] = scaledIntensity;
+				intensity[2 - r] = scaledIntensity;
 			}
 			/*intensity[0] = 0;
 			intensity[1] = 255;

@@ -47,18 +47,16 @@ private:
 	*  remark: double could be replaced by float for efficiency
 	*/
 	double*** oRGB;
-
-	/* container of angles, it is neccessary to get LCC from oRGB
-	*  [image row][image column]
-	*  remark: double could be replaced by float for efficiency
-	*/
-	double** oRGBTheta;
 protected:
-	void ScaleORGBChannel(double, uint);
+	double lumaScaleFactor = 1.0;
+	double blueYellowScaleFactor = 1.0;
+	double greenRedScaleFactor = 1.0;
 public:
 	ORGBImage(Mat&);
 	Mat& GetOriginImage();
 	Mat GetImageFromORGB();
-	void ScaleBlueYellowChannel(double);
-	void ScaleGreenRedChannel(double);
+
+	void SetLumaScaleFactor(double);
+	void SetBlueYellowScaleFactor(double);
+	void SetGreenRedScaleFactor(double);
 };

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 	//image.copyTo(resImage(Range(image.rows, image.rows), Range(image.cols, image.cols)));
 
 	//double a = 1.5;
-	oRGBImage.ScaleBlueYellowChannel(1.5);
+	oRGBImage.SetBlueYellowScaleFactor(2);
 	Mat img = oRGBImage.GetImageFromORGB();
 	hconcat(img, image, resImage);
 
