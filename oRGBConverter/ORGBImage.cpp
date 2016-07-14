@@ -117,7 +117,6 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 			double angle = oRGBTheta - theta;
 
 			//create rotation matrix
-
 			double R[2][2] = { { cos(angle), -sin(angle) } ,
 							   { sin(angle),  cos(angle) } };
 
@@ -137,12 +136,6 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 			{
 				oRGB[i][j][1 + r] = CybCrgVector[r];
 			}
-
-			/*double oRGBTheta_2 = atan2(oRGB[i][j][2], oRGB[i][j][1]);
-			if (abs(oRGBTheta[i][j] - oRGBTheta_2) > 1e-3)
-			{
-				oRGBTheta[i][j] = oRGBTheta_2;
-			}*/
 		}
 	}
 }
@@ -154,6 +147,16 @@ void  ORGBImage::SetBlueYellowScaleFactor(double blueYellowScaleFactor) {
 }
 void  ORGBImage::SetGreenRedScaleFactor(double greenRedScaleFactor) {
 	this->greenRedScaleFactor = greenRedScaleFactor;
+}
+
+void ORGBImage::SetLumaShiftingFactor(double lumaShiftingFactor) {
+	this->lumaShiftingFactor = lumaShiftingFactor;
+}
+void  ORGBImage::SetBlueYellowShiftingFactor(double blueYellowShiftingFactor) {
+	this->blueYellowShiftingFactor = blueYellowShiftingFactor;
+}
+void  ORGBImage::SetGreenRedShiftingFactor(double greenRedShiftingFactor) {
+	this->greenRedShiftingFactor = greenRedShiftingFactor;
 }
 
 Mat& ORGBImage::GetOriginImage() { return image; }
@@ -171,7 +174,8 @@ Mat ORGBImage::GetImageFromORGB() {
 
 	Mat resImage(image.rows, image.cols, image.type());
 	DrawORGBImageWithLinearTransformation(resImage,
-		this->lumaScaleFactor, this->blueYellowScaleFactor, this->greenRedScaleFactor);
+		this->lumaScaleFactor, this->blueYellowScaleFactor, this->greenRedScaleFactor,
+		this->lumaShiftingFactor, this->blueYellowShiftingFactor, this->greenRedShiftingFactor);
 	return resImage;
 }
 void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
@@ -260,7 +264,7 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 				double scaledIntensity = value *255.0;
 
 				//to avoid overflowing 
-				//in consequence of rounding in calculations
+				//as consequence of rounding in calculations
 				if (scaledIntensity > 255)
 				{
 					scaledIntensity = 255;
@@ -281,65 +285,15 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 Mat ORGBImage::GetTestImage(double shiftingFactor) {
 	Mat resImage(image.rows * 3, image.cols * 3, image.type());
 	double g_r_shiftingFactor = shiftingFactor;
-	double b_y_ShiftingFactor = shiftingFactor;
 	for (int r = 0; r < 3; r++)
 	{
-
-		switch (r)
-		{
-		case 0:
-			for (int i = 0; i < image.rows; i++)
-				for (int j = 0; j < image.cols; j++)
-					oRGB[i][j][2] += g_r_shiftingFactor;
-			//gr = 2;
-			break;
-		case 1:
-			for (int i = 0; i < image.rows; i++)
-				for (int j = 0; j < image.cols; j++)
-					oRGB[i][j][2] -= g_r_shiftingFactor;
-			//gr = 1;
-			break;
-		case 2:
-			//gr = 0.25;
-			for (int i = 0; i < image.rows; i++)
-				for (int j = 0; j < image.cols; j++)
-					oRGB[i][j][2] -= g_r_shiftingFactor;
-			break;
-		}
-		double by = 1;// = factor;
-
-		for (int i = 0; i < image.rows; i++)
-			for (int j = 0; j < image.cols; j++)
-				oRGB[i][j][1] -= b_y_ShiftingFactor;
-
+		double b_y_ShiftingFactor = -shiftingFactor;
 		for (int c = 0; c < 3; c++) {
-
-			switch (c)
-			{
-			case 0:
-				for (int i = 0; i < image.rows; i++)
-					for (int j = 0; j < image.cols; j++)
-						oRGB[i][j][1] -= b_y_ShiftingFactor;
-				//by = 0.25;
-				break;
-			case 1:
-				//by = 1;
-				for (int i = 0; i < image.rows; i++)
-					for (int j = 0; j < image.cols; j++)
-						oRGB[i][j][1] += b_y_ShiftingFactor;
-				break;
-			case 2:
-				//by = 2;
-				for (int i = 0; i < image.rows; i++)
-					for (int j = 0; j < image.cols; j++)
-						oRGB[i][j][1] += b_y_ShiftingFactor;
-				break;
-			}
 			DrawORGBImageWithLinearTransformation(Mat(resImage, Rect(image.cols*c, image.rows*r, image.cols, image.rows)),
-				1.0, by, gr);
-			//by /= factor;
+				1.0, 1.0, 1.0, 0.0, b_y_ShiftingFactor, g_r_shiftingFactor);
+			b_y_ShiftingFactor += shiftingFactor;
 		}
-		//gr *= factor;
+		g_r_shiftingFactor -= shiftingFactor;
 	}
 	//Use Return Value Optimization to avoid copying
 	return resImage;

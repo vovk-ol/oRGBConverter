@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 	}
 	ORGBImage oRGBImage(image);
 
-	Mat resImage = oRGBImage.GetTestImage(0.1);
+	Mat resImage = oRGBImage.GetTestImage(0.15);
 
 	vector<int> compression_params;
 	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);

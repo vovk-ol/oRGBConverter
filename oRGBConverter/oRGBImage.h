@@ -5,7 +5,7 @@
 
 /* To Include OpenCV:
 
-Define environment path OPENCV_DIR
+Define environment path %OPENCV_DIR%
 
 Project->properties->Configuration Properties->C/C++->General->Additional Include Directories:
 add value	$(OPENCV_DIR)\..\..\include
@@ -56,7 +56,7 @@ protected:
 	double blueYellowShiftingFactor = 0.0;
 	double greenRedShiftingFactor = 0.0;
 
-	void DrawORGBImage(Mat&,
+	void DrawORGBImageWithLinearTransformation(Mat&,
 		double, double, double,
 		double, double, double);
 public:
@@ -68,4 +68,8 @@ public:
 	void SetLumaScaleFactor(double);
 	void SetBlueYellowScaleFactor(double);
 	void SetGreenRedScaleFactor(double);
+
+	void SetLumaShiftingFactor(double);
+	void SetBlueYellowShiftingFactor(double);
+	void SetGreenRedShiftingFactor(double);
 };
