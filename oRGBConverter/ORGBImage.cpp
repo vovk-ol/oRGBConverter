@@ -161,26 +161,30 @@ Mat& ORGBImage::GetOriginImage() { return image; }
 Mat ORGBImage::GetImageFromORGB() {
 	if (lumaScaleFactor == 1.0
 		&&blueYellowScaleFactor == 1.0
-		&&greenRedScaleFactor == 1.0)
+		&&greenRedScaleFactor == 1.0
+		&& lumaShiftingFactor == 0.0
+		&& blueYellowShiftingFactor == 0.0
+		&& greenRedShiftingFactor == 0.0)
 	{
 		return this->image;
 	}
 
 	Mat resImage(image.rows, image.cols, image.type());
-	DrawORGBImage(resImage,
+	DrawORGBImageWithLinearTransformation(resImage,
 		this->lumaScaleFactor, this->blueYellowScaleFactor, this->greenRedScaleFactor);
 	return resImage;
 }
-void ORGBImage::DrawORGBImage(Mat& resImage,
-	double lumaScaleFactor, double blueYellowScaleFactor, double greenRedScaleFactor) {
+void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
+	double lumaScaleFactor, double blueYellowScaleFactor, double greenRedScaleFactor,
+	double lumaShiftingFactor, double blueYellowShiftingFactor, double greenRedShiftingFactor) {
 	for (int i = 0; i < image.rows; i++)
 	{
 		for (int j = 0; j < image.cols; j++)
 		{
 			double LCbyCgrScaledVector[3];
-			LCbyCgrScaledVector[0] = lumaScaleFactor*oRGB[i][j][0];
-			LCbyCgrScaledVector[1] = blueYellowScaleFactor*oRGB[i][j][1];
-			LCbyCgrScaledVector[2] = greenRedScaleFactor*oRGB[i][j][2];
+			LCbyCgrScaledVector[0] = lumaScaleFactor*oRGB[i][j][0] + lumaShiftingFactor;
+			LCbyCgrScaledVector[1] = blueYellowScaleFactor*oRGB[i][j][1] + blueYellowShiftingFactor;
+			LCbyCgrScaledVector[2] = greenRedScaleFactor*oRGB[i][j][2] + greenRedShiftingFactor;
 
 #pragma region undo rotation
 			double oRGBTheta_2 = atan2(LCbyCgrScaledVector[2], LCbyCgrScaledVector[1]);
@@ -251,7 +255,7 @@ void ORGBImage::DrawORGBImage(Mat& resImage,
 				for (int c = 0; c < 3; c++)
 				{
 					value += reverseCoersionMatrix[r][c] * LCbyCgrScaledVector[c];
-				}				
+				}
 
 				double scaledIntensity = value *255.0;
 
@@ -274,18 +278,68 @@ void ORGBImage::DrawORGBImage(Mat& resImage,
 	}
 }
 
-Mat ORGBImage::GetTestImage(double factor) {
+Mat ORGBImage::GetTestImage(double shiftingFactor) {
 	Mat resImage(image.rows * 3, image.cols * 3, image.type());
-	double gr =  1.0/factor;
+	double g_r_shiftingFactor = shiftingFactor;
+	double b_y_ShiftingFactor = shiftingFactor;
 	for (int r = 0; r < 3; r++)
 	{
-		double by = factor;
-		for (int c = 0; c < 3; c++) {			
-			DrawORGBImage(Mat(resImage, Rect(image.cols*c, image.rows*r, image.cols, image.rows)),
-			1.0,by,gr);
-			by /= factor;
+
+		switch (r)
+		{
+		case 0:
+			for (int i = 0; i < image.rows; i++)
+				for (int j = 0; j < image.cols; j++)
+					oRGB[i][j][2] += g_r_shiftingFactor;
+			//gr = 2;
+			break;
+		case 1:
+			for (int i = 0; i < image.rows; i++)
+				for (int j = 0; j < image.cols; j++)
+					oRGB[i][j][2] -= g_r_shiftingFactor;
+			//gr = 1;
+			break;
+		case 2:
+			//gr = 0.25;
+			for (int i = 0; i < image.rows; i++)
+				for (int j = 0; j < image.cols; j++)
+					oRGB[i][j][2] -= g_r_shiftingFactor;
+			break;
 		}
-		gr *= factor;
+		double by = 1;// = factor;
+
+		for (int i = 0; i < image.rows; i++)
+			for (int j = 0; j < image.cols; j++)
+				oRGB[i][j][1] -= b_y_ShiftingFactor;
+
+		for (int c = 0; c < 3; c++) {
+
+			switch (c)
+			{
+			case 0:
+				for (int i = 0; i < image.rows; i++)
+					for (int j = 0; j < image.cols; j++)
+						oRGB[i][j][1] -= b_y_ShiftingFactor;
+				//by = 0.25;
+				break;
+			case 1:
+				//by = 1;
+				for (int i = 0; i < image.rows; i++)
+					for (int j = 0; j < image.cols; j++)
+						oRGB[i][j][1] += b_y_ShiftingFactor;
+				break;
+			case 2:
+				//by = 2;
+				for (int i = 0; i < image.rows; i++)
+					for (int j = 0; j < image.cols; j++)
+						oRGB[i][j][1] += b_y_ShiftingFactor;
+				break;
+			}
+			DrawORGBImageWithLinearTransformation(Mat(resImage, Rect(image.cols*c, image.rows*r, image.cols, image.rows)),
+				1.0, by, gr);
+			//by /= factor;
+		}
+		//gr *= factor;
 	}
 	//Use Return Value Optimization to avoid copying
 	return resImage;

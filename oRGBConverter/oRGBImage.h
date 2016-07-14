@@ -51,7 +51,14 @@ protected:
 	double lumaScaleFactor = 1.0;
 	double blueYellowScaleFactor = 1.0;
 	double greenRedScaleFactor = 1.0;
-	void DrawORGBImage(Mat&, double, double, double);
+
+	double lumaShiftingFactor = 0.0;
+	double blueYellowShiftingFactor = 0.0;
+	double greenRedShiftingFactor = 0.0;
+
+	void DrawORGBImage(Mat&,
+		double, double, double,
+		double, double, double);
 public:
 	ORGBImage(Mat&);
 	Mat& GetOriginImage();
