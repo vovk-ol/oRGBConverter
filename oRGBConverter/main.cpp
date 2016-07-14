@@ -91,10 +91,11 @@ int main(int argc, char** argv)
 
 	Mat resImage;
 	try {
-		ORGBImage oRGBImage(image);
+		ORGBImage oRGBImage1(image);
+		ORGBImage oRGBImage(oRGBImage1);
 
 		resImage = oRGBImage.GetTestImage(shiftingFactor);
-
+		
 		/*vector<int> compression_params;
 		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
 		compression_params.push_back(9);*/

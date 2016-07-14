@@ -128,6 +128,22 @@ ORGBImage::ORGBImage(Mat _image) : image(_image) {
 		}
 	}
 }
+ORGBImage::ORGBImage(const ORGBImage& oRGBImage) :image(oRGBImage.image)
+{
+	oRGB = new double**[image.rows];
+	for (int i = 0; i < image.rows; i++)
+	{
+		oRGB[i] = new double*[image.cols];
+		for (int j = 0; j < image.cols; j++)
+		{
+			oRGB[i][j] = new double[3];
+			for (int ci = 0; ci < 3; ci++)
+			{
+				oRGB[i][j][ci] = oRGBImage.oRGB[i][j][ci];
+			}
+		}
+	}
+}
 void ORGBImage::SetLumaScaleFactor(double lumaScaleFactor) {
 	this->lumaScaleFactor = lumaScaleFactor;
 }
@@ -148,7 +164,7 @@ void  ORGBImage::SetGreenRedShiftingFactor(double greenRedShiftingFactor) {
 	this->greenRedShiftingFactor = greenRedShiftingFactor;
 }
 
-Mat ORGBImage::GetOriginImage() { return image; }
+Mat& ORGBImage::GetOriginImage() { return image; }
 
 Mat ORGBImage::GetImageFromORGB() {
 	if (lumaScaleFactor == 1.0

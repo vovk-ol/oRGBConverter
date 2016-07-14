@@ -63,7 +63,8 @@ protected:
 	double AngleReverseTransform(double);
 public:
 	ORGBImage(Mat);
-	Mat GetOriginImage();
+	ORGBImage(const ORGBImage&);
+	Mat& GetOriginImage();
 	Mat GetImageFromORGB();
 	Mat GetTestImage(double factor);
 
