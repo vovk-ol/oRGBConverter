@@ -32,7 +32,36 @@ const double ORGBImage::reverseCoersionMatrix[3][3] = { { 1.0000, 0.1140, 0.7436
 //		: (1.055f * powf(linear, 1.0f / 2.4f) - 0.055f);
 //}
 
-ORGBImage::ORGBImage(Mat& _image) : image(_image) {
+double ORGBImage::AngleTransform(double theta) {
+	if (theta < M_PI / 3.0)
+	{
+		return 1.5*theta;
+	}
+	else
+	{
+		if (theta <= M_PI)
+		{
+			return M_PI_2 + 0.75*(theta - M_PI / 3.0);
+		}
+	}
+	throw ErrorClass(10, "unexpected angle");
+}
+double ORGBImage::AngleReverseTransform(double oRGB_theta) {
+	if (oRGB_theta < M_PI_2)
+	{
+		return (2.0*oRGB_theta) / 3.0;
+	}
+	else
+	{
+		if (oRGB_theta <= M_PI)
+		{
+			return M_PI / 3.0 + (4.0 / 3.0)*(oRGB_theta - M_PI_2);
+		}
+	}
+	throw ErrorClass(11, "unexpected angle");
+}
+
+ORGBImage::ORGBImage(Mat _image) : image(_image) {
 
 #pragma region check input image
 
@@ -56,16 +85,14 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 		for (int j = 0; j < image.cols; j++)
 		{
 			oRGB[i][j] = new double[3];
-			Vec3b  intensity = image.at<Vec3b>(i, j);//get pixel intensity
 
+			Vec3b  intensity = image.at<Vec3b>(i, j);
 			for (int ch_i = 0; ch_i < 3; ch_i++)
 			{
-				//this scaling to range [0,1] isn't neccesary for image processing,
-				//but it's needed to get origin oRGB space
 				scaledOntersity[ch_i] = intensity[2 - ch_i] / 255.0;
 			}
 
-			//get LCC space
+#pragma region LCC converting
 			for (int r = 0; r < 3; r++) {
 				oRGB[i][j][r] = 0;
 				for (int c = 0; c < 3; c++)
@@ -73,69 +100,31 @@ ORGBImage::ORGBImage(Mat& _image) : image(_image) {
 					oRGB[i][j][r] += coersionMatrix[r][c] * scaledOntersity[c];
 				}
 			}
+#pragma endregion
 
-			//rotating
+#pragma region rotating
+
 			double theta = atan2(oRGB[i][j][2], oRGB[i][j][1]);
 			double oRGBTheta = 0;
-			if (theta > 0) {
-				if (theta < M_PI / 3.0)
-				{
-					oRGBTheta = 1.5*theta;
-				}
-				else
-				{
-					if (theta <= M_PI)
-					{
-						oRGBTheta = M_PI_2 + 0.75*(theta - M_PI / 3.0);
-					}
-					else
-					{
-						throw ErrorClass(10, "unexpected angle");
-					}
-				}
-			}
+
+			if (theta > 0)
+				oRGBTheta = AngleTransform(theta);
 			else
-			{
-				if (theta > -M_PI / 3.0)
-				{
-					oRGBTheta = 1.5*theta;
-				}
-				else
-				{
-					if (theta >= -M_PI)
-					{
-						oRGBTheta = -(M_PI_2 + 0.75*(-theta - M_PI / 3.0));
-					}
-					else
-					{
-						throw ErrorClass(10, "unexpected angle");
-					}
-				}
-			}
+				oRGBTheta = -AngleTransform(-theta);
+
 			//remark: if angle is less then some small parametr e. g. 1e-9, 
 			//we could do no rotating for efficiency
 			double angle = oRGBTheta - theta;
 
-			//create rotation matrix
-			double R[2][2] = { { cos(angle), -sin(angle) } ,
-							   { sin(angle),  cos(angle) } };
-
-			double CybCrgVector[2];
-
-			//multiply by Rotation matrix R
-			for (int r = 0; r < 2; r++) {
-				CybCrgVector[r] = 0;
-				for (int c = 0; c < 2; c++)
-				{
-					CybCrgVector[r] += R[r][c] * oRGB[i][j][1 + c];
-				}
-			}
-
-			//renew yellow-blue and red-green channels in oRGB[i][j] pixel
-			for (int r = 0; r < 2; r++)
-			{
-				oRGB[i][j][1 + r] = CybCrgVector[r];
-			}
+			//Point rotation
+			double Cyb, Crg;
+			double rotateMatrixCos = cos(angle);
+			double rotateMatrixSin = sin(angle);
+			Cyb = rotateMatrixCos*oRGB[i][j][1] - rotateMatrixSin*oRGB[i][j][2];
+			Crg = rotateMatrixSin*oRGB[i][j][1] + rotateMatrixCos*oRGB[i][j][2];
+			oRGB[i][j][1] = Cyb;
+			oRGB[i][j][2] = Crg;
+#pragma endregion
 		}
 	}
 }
@@ -159,7 +148,7 @@ void  ORGBImage::SetGreenRedShiftingFactor(double greenRedShiftingFactor) {
 	this->greenRedShiftingFactor = greenRedShiftingFactor;
 }
 
-Mat& ORGBImage::GetOriginImage() { return image; }
+Mat ORGBImage::GetOriginImage() { return image; }
 
 Mat ORGBImage::GetImageFromORGB() {
 	if (lumaScaleFactor == 1.0
@@ -191,63 +180,25 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 			LCbyCgrScaledVector[2] = greenRedScaleFactor*oRGB[i][j][2] + greenRedShiftingFactor;
 
 #pragma region undo rotation
-			double oRGBTheta_2 = atan2(LCbyCgrScaledVector[2], LCbyCgrScaledVector[1]);
+			double oRGBTheta = atan2(LCbyCgrScaledVector[2], LCbyCgrScaledVector[1]);
 			double theta;
-			if (oRGBTheta_2 > 0) {
-				if (oRGBTheta_2 < M_PI_2)
-				{
-					theta = (2.0*oRGBTheta_2) / 3.0;
-				}
-				else
-				{
-					if (oRGBTheta_2 <= M_PI)
-					{
-						theta = M_PI / 3.0 + (4.0 / 3.0)*(oRGBTheta_2 - M_PI_2);
-					}
-					else
-					{
-						throw ErrorClass(11, "unexpected angle");
-					}
-
-				}
-			}
+			if (oRGBTheta > 0)
+				theta = AngleReverseTransform(oRGBTheta);
 			else
-			{
-				if (oRGBTheta_2 > -M_PI_2)
-				{
-					theta = (2.0*oRGBTheta_2) / 3.0;
-				}
-				else
-				{
-					if (oRGBTheta_2 >= -M_PI)
-					{
-						theta = -(M_PI / 3.0 + (4.0 / 3.0)*(-oRGBTheta_2 - M_PI_2));
-					}
-					else
-					{
-						throw ErrorClass(11, "unexpected angle");
-					}
+				theta = -AngleReverseTransform(-oRGBTheta);
 
-				}
-			}
+			//remark: if angle is less then some small parametr e. g. 1e-9, 
+			//we could do no rotating for efficiency
+			double angle = oRGBTheta - theta;
 
-			double angle = (oRGBTheta_2 - theta);
-			double inverseR[2][2] = { { cos(angle), sin(angle) } ,
-									  { -sin(angle),cos(angle) } };
-			double CbyCgrTmpVector[2];
-
-			for (int r = 0; r < 2; r++) {
-				CbyCgrTmpVector[r] = 0;
-				for (int c = 0; c < 2; c++)
-				{
-					CbyCgrTmpVector[r] += inverseR[r][c] * LCbyCgrScaledVector[1 + c];
-				}
-			}
-
-			for (int r = 0; r < 2; r++)
-			{
-				LCbyCgrScaledVector[1 + r] = CbyCgrTmpVector[r];
-			}
+			//rotation
+			double Cby, Cgr;
+			double rotateMatrixCos = cos(angle);
+			double rotateMatrixSin = sin(angle);
+			Cby = rotateMatrixCos*LCbyCgrScaledVector[1] + rotateMatrixSin*LCbyCgrScaledVector[2];
+			Cgr = -rotateMatrixSin*LCbyCgrScaledVector[1] + rotateMatrixCos*LCbyCgrScaledVector[2];
+			LCbyCgrScaledVector[1] = Cby;
+			LCbyCgrScaledVector[2] = Cgr;
 
 #pragma endregion
 
@@ -297,4 +248,19 @@ Mat ORGBImage::GetTestImage(double shiftingFactor) {
 	}
 	//Use Return Value Optimization to avoid copying
 	return resImage;
+}
+
+ORGBImage::~ORGBImage() {
+	if (oRGB != NULL)
+	{
+		for (int i = 0; i < image.rows; i++)
+		{
+			for (int j = 0; j < image.cols; j++)
+			{
+				delete[] oRGB[i][j];
+			}
+			delete[] oRGB[i];
+		}
+		delete[] oRGB;
+	}
 }

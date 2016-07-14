@@ -40,7 +40,7 @@ private:
 	const static double reverseCoersionMatrix[3][3];
 	
 	//source image
-	Mat& image;
+	Mat image;
 
     /* oRGB space container
 	*  [image row][image column][channel index: 0,1,2]
@@ -59,9 +59,11 @@ protected:
 	void DrawORGBImageWithLinearTransformation(Mat&,
 		double, double, double,
 		double, double, double);
+	double AngleTransform(double);
+	double AngleReverseTransform(double);
 public:
-	ORGBImage(Mat&);
-	Mat& GetOriginImage();
+	ORGBImage(Mat);
+	Mat GetOriginImage();
 	Mat GetImageFromORGB();
 	Mat GetTestImage(double factor);
 
@@ -72,4 +74,6 @@ public:
 	void SetLumaShiftingFactor(double);
 	void SetBlueYellowShiftingFactor(double);
 	void SetGreenRedShiftingFactor(double);
+
+	~ORGBImage();
 };

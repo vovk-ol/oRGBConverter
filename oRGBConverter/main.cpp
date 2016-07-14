@@ -21,62 +21,121 @@ void LoadImage(string inputFileName, Mat& image)
 
 int main(int argc, char** argv)
 {
+#pragma region get command line arguments
+
 	string inputFileName = "image.png";
 	string outputFileName = "out.png";
+	double shiftingFactor = 0.15;
+	bool openImageAfterProcessing = false;
 
-	//Image processing
+	try {
+		//0 - nothing
+		//1 - src find
+		//2 - dest find
+		//3 - shifting factor find
+		//4 - openImage=true
+		int argFoundIndex = 0;
+		for (int ai = 1; ai < argc; ai++)
+		{
+			if (argFoundIndex != 0)
+			{
+				switch (argFoundIndex)
+				{
+				case 1:
+					inputFileName = string(argv[ai]);
+					break;
+				case 2:
+					outputFileName = string(argv[ai]);
+					break;
+				case 3:
+					shiftingFactor = atof(argv[ai]);
+					break;
+				case 4:
+					openImageAfterProcessing = true;
+					break;
+				}
+
+				argFoundIndex = 0;
+			}
+			else {
+				if (string(argv[ai]) == "-src")
+					argFoundIndex = 1;
+				if (string(argv[ai]) == "-dest")
+					argFoundIndex = 2;
+				if (string(argv[ai]) == "-sf")
+					argFoundIndex = 3;
+				if (string(argv[ai]) == "-o")
+					argFoundIndex = 4;
+			}
+		}
+	}
+	catch (...)
+	{
+		std::cout << "getting command parametrs error";
+		std::system("pause");
+		return 1;
+	}
+#pragma endregion
+
+	std::cout << "processing started with parametrs:\n";
+	std::cout << "input image path: " << inputFileName << "\n";
+	std::cout << "output image path: " << outputFileName << "\n";
+	std::cout << "shifting factor: " << shiftingFactor << "\n";
+
 	Mat image;
 	try {
 		LoadImage(inputFileName, image);
 	}
-	catch (string s)
+	catch (...)
 	{
-		cout << "image processing error: " << s << endl;
-		system("pause");
+		std::cout << "image loading error";
+		std::system("pause");
 		return 1;
 	}
-	ORGBImage oRGBImage(image);
 
-	Mat resImage = oRGBImage.GetTestImage(0.15);
+	Mat resImage;
+	try {
+		ORGBImage oRGBImage(image);
 
-	vector<int> compression_params;
-	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-	compression_params.push_back(9);
+		resImage = oRGBImage.GetTestImage(shiftingFactor);
+
+		/*vector<int> compression_params;
+		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+		compression_params.push_back(9);*/
+	}
+	catch (...)
+	{
+		std::cout << "image processing error";
+		std::system("pause");
+		return 1;
+	}
 
 	try {
-		imwrite(outputFileName, resImage, compression_params);
+		imwrite(outputFileName, resImage);// , compression_params);
 	}
 	catch (runtime_error& ex) {
-		cout<<"Exception converting image to PNG format: "<<ex.what()<<endl;
-		//return 1;
+		std::cout << "Exception converting image to PNG format: " << ex.what() << endl;
+		std::system("pause");
+		return 1;
+	}
+	catch (...)
+	{
+		std::cout << "output image saving";
+		std::system("pause");
+		return 1;
 	}
 
-
-	//Mat resImage(image.rows*3, image.cols*3, image.type());
-	////image.copyTo(resImage(Range(image.rows, image.rows), Range(image.cols, image.cols)));
-
-	////double a = 1.5;
-	//oRGBImage.SetBlueYellowScaleFactor(2);
-	//Mat img = oRGBImage.GetImageFromORGB();
-	////cout << &img << endl;
-	//hconcat(img, image, resImage);
-
-	/*oRGBImage.ScaleYellowBlueChannel(1.0);
-	img = oRGBImage.GetImageFromORGB();
-	hconcat(resImage, img, resImage);*/
-
-	//oRGBImage.ScaleRedGreenChannel(1 / a);
-	//img = oRGBImage.GetImageFromORGB();
-	//vconcat(resImage, resImage, resImage);
-
-	//namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
-	//imshow("Display window", resImage); // Show our image inside it.
-
-	//waitKey(0); // Wait for a keystroke in the window
-
-
-
-	system("pause");
+	if (openImageAfterProcessing)
+	{
+		// Create a window for display.
+		namedWindow("Display window", WINDOW_AUTOSIZE);
+		// Show image
+		imshow("Display window", resImage);
+		// Wait for a keystroke in the window
+		waitKey(0);
+	}
+	std::cout << "image processing is successful!\n\n";
+	std::system("pause");
 
 	return 0;
 }
