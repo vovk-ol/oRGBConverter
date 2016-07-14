@@ -50,11 +50,7 @@ int main(int argc, char** argv)
 				case 3:
 					shiftingFactor = atof(argv[ai]);
 					break;
-				case 4:
-					openImageAfterProcessing = true;
-					break;
 				}
-
 				argFoundIndex = 0;
 			}
 			else {
@@ -64,8 +60,8 @@ int main(int argc, char** argv)
 					argFoundIndex = 2;
 				if (string(argv[ai]) == "-sf")
 					argFoundIndex = 3;
-				if (string(argv[ai]) == "-o")
-					argFoundIndex = 4;
+				if (string(argv[ai]) == "-open")
+					openImageAfterProcessing = true;
 			}
 		}
 	}
@@ -120,18 +116,26 @@ int main(int argc, char** argv)
 	}
 	catch (...)
 	{
-		std::cout << "output image saving";
+		std::cout << "output image saving error";
 		std::system("pause");
 		return 1;
 	}
 
 	if (openImageAfterProcessing)
 	{
-		// Create a window for display.
-		namedWindow("Display window", WINDOW_AUTOSIZE);
-		// Show image
-		imshow("Display window", resImage);
-		// Wait for a keystroke in the window
+		try {
+			// Create a window for display.
+			namedWindow("Display window", WINDOW_AUTOSIZE);
+			// Show image
+			imshow("Display window", resImage);
+			// Wait for a keystroke in the window
+		}
+		catch (...)
+		{
+			std::cout << "show image error";
+			std::system("pause");
+			return 1;
+		}
 		waitKey(0);
 	}
 	std::cout << "image processing is successful!\n\n";
