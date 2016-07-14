@@ -27,7 +27,6 @@ int main(int argc, char** argv)
 	//Image processing
 	Mat image;
 	try {
-
 		LoadImage(inputFileName, image);
 	}
 	catch (string s)
@@ -38,13 +37,29 @@ int main(int argc, char** argv)
 	}
 	ORGBImage oRGBImage(image);
 
-	Mat resImage(image.rows*3, image.cols*3, image.type());
-	//image.copyTo(resImage(Range(image.rows, image.rows), Range(image.cols, image.cols)));
+	Mat resImage = oRGBImage.GetTestImage(0.5);
 
-	//double a = 1.5;
-	oRGBImage.SetBlueYellowScaleFactor(2);
-	Mat img = oRGBImage.GetImageFromORGB();
-	hconcat(img, image, resImage);
+	vector<int> compression_params;
+	compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+	compression_params.push_back(9);
+
+	try {
+		imwrite(outputFileName, resImage, compression_params);
+	}
+	catch (runtime_error& ex) {
+		cout<<"Exception converting image to PNG format: "<<ex.what()<<endl;
+		//return 1;
+	}
+
+
+	//Mat resImage(image.rows*3, image.cols*3, image.type());
+	////image.copyTo(resImage(Range(image.rows, image.rows), Range(image.cols, image.cols)));
+
+	////double a = 1.5;
+	//oRGBImage.SetBlueYellowScaleFactor(2);
+	//Mat img = oRGBImage.GetImageFromORGB();
+	////cout << &img << endl;
+	//hconcat(img, image, resImage);
 
 	/*oRGBImage.ScaleYellowBlueChannel(1.0);
 	img = oRGBImage.GetImageFromORGB();
@@ -54,10 +69,10 @@ int main(int argc, char** argv)
 	//img = oRGBImage.GetImageFromORGB();
 	//vconcat(resImage, resImage, resImage);
 
-	namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
-	imshow("Display window", resImage); // Show our image inside it.
+	//namedWindow("Display window", WINDOW_AUTOSIZE); // Create a window for display.
+	//imshow("Display window", resImage); // Show our image inside it.
 
-	waitKey(0); // Wait for a keystroke in the window
+	//waitKey(0); // Wait for a keystroke in the window
 
 
 

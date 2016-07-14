@@ -159,8 +159,20 @@ void  ORGBImage::SetGreenRedScaleFactor(double greenRedScaleFactor) {
 Mat& ORGBImage::GetOriginImage() { return image; }
 
 Mat ORGBImage::GetImageFromORGB() {
-	Mat resImage(image.rows, image.cols, image.type());// , Scalar(0, 0, 255));
-	//return resImage;
+	if (lumaScaleFactor == 1.0
+		&&blueYellowScaleFactor == 1.0
+		&&greenRedScaleFactor == 1.0)
+	{
+		return this->image;
+	}
+
+	Mat resImage(image.rows, image.cols, image.type());
+	DrawORGBImage(resImage,
+		this->lumaScaleFactor, this->blueYellowScaleFactor, this->greenRedScaleFactor);
+	return resImage;
+}
+void ORGBImage::DrawORGBImage(Mat& resImage,
+	double lumaScaleFactor, double blueYellowScaleFactor, double greenRedScaleFactor) {
 	for (int i = 0; i < image.rows; i++)
 	{
 		for (int j = 0; j < image.cols; j++)
@@ -171,7 +183,7 @@ Mat ORGBImage::GetImageFromORGB() {
 			LCbyCgrScaledVector[2] = greenRedScaleFactor*oRGB[i][j][2];
 
 #pragma region undo rotation
-			double oRGBTheta_2 = atan2(LCbyCgrScaledVector[2],LCbyCgrScaledVector[1]);
+			double oRGBTheta_2 = atan2(LCbyCgrScaledVector[2], LCbyCgrScaledVector[1]);
 			double theta;
 			if (oRGBTheta_2 > 0) {
 				if (oRGBTheta_2 < M_PI_2)
@@ -239,19 +251,7 @@ Mat ORGBImage::GetImageFromORGB() {
 				for (int c = 0; c < 3; c++)
 				{
 					value += reverseCoersionMatrix[r][c] * LCbyCgrScaledVector[c];
-				}
-				/*if (value < 0)
-				{
-					if (value < -0.3)
-						value = value;
-					value = 0;
-				}
-				if (value > 1)
-				{
-					if (value > 1.3)
-						value = value;
-					value = 1;
-				}*/
+				}				
 
 				double scaledIntensity = value *255.0;
 
@@ -259,27 +259,34 @@ Mat ORGBImage::GetImageFromORGB() {
 				//in consequence of rounding in calculations
 				if (scaledIntensity > 255)
 				{
-			/*		double d = 255 - scaledIntensity;
-					if (d > 10)
-						d = -d;*/
 					scaledIntensity = 255;
 				}
 				if (scaledIntensity < 0)
 				{
-	/*				if (scaledIntensity < -10)
-						scaledIntensity = -scaledIntensity;*/
 					scaledIntensity = 0;
 				}
 
 				intensity[2 - r] = scaledIntensity;
 			}
-			/*intensity[0] = 0;
-			intensity[1] = 255;
-			intensity[2] = 0;*/
 			resImage.at<Vec3b>(i, j) = intensity;
 #pragma endregion
 		}
 	}
+}
 
+Mat ORGBImage::GetTestImage(double factor) {
+	Mat resImage(image.rows * 3, image.cols * 3, image.type());
+	double gr =  1.0/factor;
+	for (int r = 0; r < 3; r++)
+	{
+		double by = factor;
+		for (int c = 0; c < 3; c++) {			
+			DrawORGBImage(Mat(resImage, Rect(image.cols*c, image.rows*r, image.cols, image.rows)),
+			1.0,by,gr);
+			by /= factor;
+		}
+		gr *= factor;
+	}
+	//Use Return Value Optimization to avoid copying
 	return resImage;
 }

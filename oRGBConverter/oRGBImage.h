@@ -51,10 +51,12 @@ protected:
 	double lumaScaleFactor = 1.0;
 	double blueYellowScaleFactor = 1.0;
 	double greenRedScaleFactor = 1.0;
+	void DrawORGBImage(Mat&, double, double, double);
 public:
 	ORGBImage(Mat&);
 	Mat& GetOriginImage();
 	Mat GetImageFromORGB();
+	Mat GetTestImage(double factor);
 
 	void SetLumaScaleFactor(double);
 	void SetBlueYellowScaleFactor(double);
