@@ -1,6 +1,6 @@
 /*
 author: vovk, vovk@windowslive.com
-
+test task
 */
 
 #include "oRGBImage.h"

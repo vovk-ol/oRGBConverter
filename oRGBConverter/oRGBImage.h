@@ -1,9 +1,13 @@
+/*
+author: vovk, vovk@windowslive.com
+test task
+*/
 #pragma once
 
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-/* To Include OpenCV:
+/* To Include OpenCV 3.1.0 into VS2015:
 
 Define environment path %OPENCV_DIR%
 
@@ -14,7 +18,7 @@ Project->properties->Configuration Properties->Linker->General->Additional Libra
 add value	$(OPENCV_DIR)\lib
 
 Project->properties->Configuration Properties->Linker->Input->Additional Dependencies^
-add value	opencv_world310d.lib;
+add value	opencv_world310d.lib; for debug and opencv_world310.lib; for release
 */
 #include <opencv2/core.hpp>
 #include "opencv2/imgproc/imgproc.hpp"
@@ -59,14 +63,14 @@ protected:
 	void DrawORGBImageWithLinearTransformation(Mat&,
 		double, double, double,
 		double, double, double);
-	double AngleTransform(double);
-	double AngleReverseTransform(double);
+	inline double AngleTransform(double);
+	inline double AngleReverseTransform(double);
 public:
 	ORGBImage();
 	ORGBImage(Mat);
 	ORGBImage(const ORGBImage&);
 	ORGBImage& operator=(const ORGBImage&);
-	Mat& GetOriginImage();
+	Mat& GetOriginImageRef();
 	Mat GetImageFromORGB();
 	Mat GetTestImage(double factor);
 

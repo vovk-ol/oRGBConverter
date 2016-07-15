@@ -1,3 +1,8 @@
+/*
+author: vovk, vovk@windowslive.com
+test task
+*/
+
 #include "oRGBImage.h"
 
 ErrorClass::ErrorClass(int _errorCode, string _msg) :errorCode(_errorCode), msg(_msg) {}
@@ -10,29 +15,7 @@ const double ORGBImage::reverseCoersionMatrix[3][3] = { { 1.0000, 0.1140, 0.7436
 														{ 1.0000, 0.1140, -0.4111 },
 														{ 1.0000, -0.8660, 0.1663 } };
 
-//******************************************************************************
-// Convert an sRGB color channel to a linear sRGB color channel.
-//******************************************************************************
-//float GammaExpand_sRGB(float nonlinear)
-//{
-//	return nonlinear;
-//	return   (nonlinear <= 0.04045f)
-//		? (nonlinear / 12.92f)
-//		: (powf((nonlinear + 0.055f) / 1.055f, 2.4f));
-//}
-
-//******************************************************************************
-// Convert a linear sRGB color channel to a sRGB color channel.
-//******************************************************************************
-//float GammaCompress_sRGB(float linear)
-//{
-//	return linear;
-//	return   (linear <= 0.0031308f)
-//		? (12.92f * linear)
-//		: (1.055f * powf(linear, 1.0f / 2.4f) - 0.055f);
-//}
-
-double ORGBImage::AngleTransform(double theta) {
+inline double ORGBImage::AngleTransform(double theta) {
 	if (theta < M_PI / 3.0)
 	{
 		return 1.5*theta;
@@ -46,7 +29,7 @@ double ORGBImage::AngleTransform(double theta) {
 	}
 	throw ErrorClass(10, "unexpected angle");
 }
-double ORGBImage::AngleReverseTransform(double oRGB_theta) {
+inline double ORGBImage::AngleReverseTransform(double oRGB_theta) {
 	if (oRGB_theta < M_PI_2)
 	{
 		return (2.0*oRGB_theta) / 3.0;
@@ -180,11 +163,11 @@ ORGBImage& ORGBImage::operator=(const ORGBImage& oRGBImage) {
 
 		this->image = oRGBImage.image;
 
-		//copy new valuer to this->oRGB
+		//copy new values to this->oRGB
 		for (int i = 0; i < image.rows; i++)
 			for (int j = 0; j < image.cols; j++)
 				for (int ci = 0; ci < 3; ci++)
-					this->oRGB[i][j][ci] = oRGBImage.oRGB[i][j][ci];				
+					this->oRGB[i][j][ci] = oRGBImage.oRGB[i][j][ci];
 
 	}
 	return *this;
@@ -209,7 +192,7 @@ void  ORGBImage::SetGreenRedShiftingFactor(double greenRedShiftingFactor) {
 	this->greenRedShiftingFactor = greenRedShiftingFactor;
 }
 
-Mat& ORGBImage::GetOriginImage() { return image; }
+Mat& ORGBImage::GetOriginImageRef() { return image; }
 
 Mat ORGBImage::GetImageFromORGB() {
 	if (lumaScaleFactor == 1.0
@@ -231,7 +214,7 @@ Mat ORGBImage::GetImageFromORGB() {
 void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 	double lumaScaleFactor, double blueYellowScaleFactor, double greenRedScaleFactor,
 	double lumaShiftingFactor, double blueYellowShiftingFactor, double greenRedShiftingFactor) {
-	
+
 	if (this->oRGB == NULL)
 	{
 		return;
@@ -241,6 +224,7 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 	{
 		for (int j = 0; j < image.cols; j++)
 		{
+			//linear transformation: scaling and shifting 
 			double LCbyCgrScaledVector[3];
 			LCbyCgrScaledVector[0] = lumaScaleFactor*oRGB[i][j][0] + lumaShiftingFactor;
 			LCbyCgrScaledVector[1] = blueYellowScaleFactor*oRGB[i][j][1] + blueYellowShiftingFactor;
@@ -273,13 +257,12 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 
 			Vec3b  intensity;
 			for (int r = 0; r < 3; r++) {
-				double value = 0;
+				double scaledIntensity = 0;
 				for (int c = 0; c < 3; c++)
 				{
-					value += reverseCoersionMatrix[r][c] * LCbyCgrScaledVector[c];
+					scaledIntensity += reverseCoersionMatrix[r][c] * LCbyCgrScaledVector[c];
 				}
-
-				double scaledIntensity = value *255.0;
+				scaledIntensity *= 255.0;
 
 				//to avoid overflowing 
 				//as consequence of rounding in calculations
@@ -318,7 +301,7 @@ Mat ORGBImage::GetTestImage(double shiftingFactor) {
 		}
 		g_r_shiftingFactor -= shiftingFactor;
 	}
-	//Use Return Value Optimization to avoid copying
+	//Use RVO (Return Value Optimization) to avoid copying
 	return resImage;
 }
 
