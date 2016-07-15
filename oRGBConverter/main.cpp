@@ -4,7 +4,7 @@ author: vovk, vovk@windowslive.com
 */
 
 #include "oRGBImage.h"
-
+#include <time.h>
 
 /*
 load image, check format, file corruption, etc.
@@ -78,6 +78,7 @@ int main(int argc, char** argv)
 	std::cout << "output image path: " << outputFileName << "\n";
 	std::cout << "shifting factor: " << shiftingFactor << "\n";
 
+	const clock_t startProcessingTime = clock();
 	Mat image;
 	try {
 		LoadImage(inputFileName, image);
@@ -139,7 +140,12 @@ int main(int argc, char** argv)
 		}
 		waitKey(0);
 	}
-	std::cout << "image processing is successful!\n\n";
+
+	// do something
+	std::cout << float(clock() - startProcessingTime) / CLOCKS_PER_SEC;
+	std::cout << "image processing is successful!\n"
+		<<"Processing time = "<< float(clock() - startProcessingTime) / CLOCKS_PER_SEC
+		<<"sec \n\n";
 	std::system("pause");
 
 	return 0;
