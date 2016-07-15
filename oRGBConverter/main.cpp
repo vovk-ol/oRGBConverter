@@ -11,10 +11,10 @@ load image, check format, file corruption, etc.
 */
 void LoadImage(string inputFileName, Mat& image)
 {
-	image = imread(inputFileName, IMREAD_COLOR); // Read the file
+	image = imread(inputFileName, IMREAD_COLOR);
 	if (image.empty()) // Check for invalid input
 	{
-		throw string("invalid input");//use string for simplicity
+		throw ErrorClass(25, "invalid input");
 	}
 	return;
 }
@@ -92,14 +92,8 @@ int main(int argc, char** argv)
 
 	Mat resImage;
 	try {
-		ORGBImage oRGBImage1(image);
-		ORGBImage oRGBImage(oRGBImage1);
-
-		resImage = oRGBImage.GetTestImage(shiftingFactor);
-		
-		/*vector<int> compression_params;
-		compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-		compression_params.push_back(9);*/
+		ORGBImage oRGBImage(image);
+		resImage = oRGBImage.GetTestImage(shiftingFactor);		
 	}
 	catch (...)
 	{
@@ -109,7 +103,7 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		imwrite(outputFileName, resImage);// , compression_params);
+		imwrite(outputFileName, resImage);
 	}
 	catch (runtime_error& ex) {
 		std::cout << "Exception converting image to PNG format: " << ex.what() << endl;
@@ -130,7 +124,7 @@ int main(int argc, char** argv)
 			namedWindow("Display window", WINDOW_AUTOSIZE);
 			// Show image
 			imshow("Display window", resImage);
-			// Wait for a keystroke in the window
+			
 		}
 		catch (...)
 		{
@@ -138,10 +132,10 @@ int main(int argc, char** argv)
 			std::system("pause");
 			return 1;
 		}
+		// Wait for a keystroke in the window
 		waitKey(0);
 	}
 
-	// do something
 	std::cout << float(clock() - startProcessingTime) / CLOCKS_PER_SEC;
 	std::cout << "image processing is successful!\n"
 		<<"Processing time = "<< float(clock() - startProcessingTime) / CLOCKS_PER_SEC

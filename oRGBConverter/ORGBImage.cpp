@@ -61,6 +61,10 @@ double ORGBImage::AngleReverseTransform(double oRGB_theta) {
 	throw ErrorClass(11, "unexpected angle");
 }
 
+ORGBImage::ORGBImage()
+{
+	this->oRGB = NULL;
+}
 ORGBImage::ORGBImage(Mat _image) : image(_image) {
 
 #pragma region check input image
@@ -144,6 +148,47 @@ ORGBImage::ORGBImage(const ORGBImage& oRGBImage) :image(oRGBImage.image)
 		}
 	}
 }
+ORGBImage& ORGBImage::operator=(const ORGBImage& oRGBImage) {
+	if (this != &oRGBImage)
+	{
+		//resize oRGB dimention
+		if (this->image.rows != oRGBImage.image.rows
+			|| this->image.cols != oRGBImage.image.cols)
+		{
+			//remove this->oRGB
+			if (this->oRGB != NULL)
+			{
+				for (int i = 0; i < oRGBImage.image.rows; i++)
+				{
+					for (int j = 0; j < oRGBImage.image.cols; j++)
+					{
+						delete[]this->oRGB[i][j];
+					}
+					delete[]this->oRGB[i];
+				}
+				delete[]this->oRGB;
+			}
+			//create new this->oRGB
+			this->oRGB = new double**[oRGBImage.image.rows];
+			for (int i = 0; i < oRGBImage.image.rows; i++)
+			{
+				this->oRGB[i] = new double*[oRGBImage.image.cols];
+				for (int j = 0; j < oRGBImage.image.cols; j++)
+					this->oRGB[i][j] = new double[3];
+			}
+		}
+
+		this->image = oRGBImage.image;
+
+		//copy new valuer to this->oRGB
+		for (int i = 0; i < image.rows; i++)
+			for (int j = 0; j < image.cols; j++)
+				for (int ci = 0; ci < 3; ci++)
+					this->oRGB[i][j][ci] = oRGBImage.oRGB[i][j][ci];				
+
+	}
+	return *this;
+}
 void ORGBImage::SetLumaScaleFactor(double lumaScaleFactor) {
 	this->lumaScaleFactor = lumaScaleFactor;
 }
@@ -186,6 +231,12 @@ Mat ORGBImage::GetImageFromORGB() {
 void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 	double lumaScaleFactor, double blueYellowScaleFactor, double greenRedScaleFactor,
 	double lumaShiftingFactor, double blueYellowShiftingFactor, double greenRedShiftingFactor) {
+	
+	if (this->oRGB == NULL)
+	{
+		return;
+	}
+
 	for (int i = 0; i < image.rows; i++)
 	{
 		for (int j = 0; j < image.cols; j++)
@@ -251,6 +302,11 @@ void ORGBImage::DrawORGBImageWithLinearTransformation(Mat& resImage,
 
 Mat ORGBImage::GetTestImage(double shiftingFactor) {
 	Mat resImage(image.rows * 3, image.cols * 3, image.type());
+	if (this->oRGB == NULL)
+	{
+		return resImage;
+	}
+
 	double g_r_shiftingFactor = shiftingFactor;
 	for (int r = 0; r < 3; r++)
 	{
